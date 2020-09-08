@@ -14,12 +14,13 @@ var searchMagic = "agical"; // enough to know we found Nonmagical
 
 var damageTypes = ["Acid", "Cold", "Fire", "Force", "Lightning", "Necrotic", "Poison", "Psychic", "Radiant", "Thunder", "Bludgeoning", "Piercing", "Slashing"];
 var damageMinorTypes = ["Adamantine", "Silver", "Magic"];
+var conditionTypes = ["Blinded", "Charmed", "Deafened", "Exhaustion", "Frightened", "Grappled", "Incapacitated", "Invisible", "Paralyzed", "Petrified", "Poisoned", "Prone", "Restrained", "Stunned", "Unconscious"];
 
 on('ready',function(){
     "use strict";
     log("DamageTypeMods loaded");
     
-    function hasTypeOn(theData, minorType){
+    function hasMinorTypeOn(theData, minorType){
         // minorType is one of the damageMinorTypes
         //  go through the structure and see how many are on
         var c = {count:0, dmg:[]};
@@ -35,7 +36,7 @@ on('ready',function(){
         return c;
     }
 
-    function combineRIVCData(theData){
+    function combineRIVData(theData){
         // given an object with the data, go through it all to build the string
         // that the character sheet expects for the attribute
         var s = "";
@@ -46,11 +47,10 @@ on('ready',function(){
             }
         });
         // now go through the special cases
-        var c = hasTypeOn(theData, damageMinorTypes[0]);
+        var c = hasMinorTypeOn(theData, damageMinorTypes[0]);
         if(c.count > 0){
             // we have at least one Adamantine case
             s += "; ";
-            log(c);
             if(c.count === 3){
                 s += "Bludgeoning, Piercing, and Slashing";
             } else if(c.count === 2){
@@ -61,11 +61,10 @@ on('ready',function(){
             }
             s += " from Nonmagical attacks that aren't Adamantine";
         }
-        c = hasTypeOn(theData, damageMinorTypes[1]);
+        c = hasMinorTypeOn(theData, damageMinorTypes[1]);
         if(c.count > 0){
             // we have at least one Silver case
             s += "; ";
-            log(c);
             if(c.count === 3){
                 s += "Bludgeoning, Piercing, and Slashing";
             } else if(c.count === 2){
@@ -76,11 +75,10 @@ on('ready',function(){
             }
             s += " from Nonmagical attacks that aren't Silvered";
         }
-        c = hasTypeOn(theData, damageMinorTypes[2]);
+        c = hasMinorTypeOn(theData, damageMinorTypes[2]);
         if(c.count > 0){
             // we have at least one Magic case
             s += "; ";
-            log(c);
             if(c.count === 3){
                 s += "Bludgeoning, Piercing, and Slashing";
             } else if(c.count === 2){
@@ -92,15 +90,13 @@ on('ready',function(){
             s += " from Nonmagical attacks";
         }
         
-        log("After: " + s);
         return s.substr(2);
     }
 
-    function parseRIVCData(theData) {
-        log("Before: " + theData);
+    function parseRIVData(theData) {
         // we get a string which is the character sheet's attribute data
         //  we need to split it up into an array structure and pass that back.
-        var ricv = {    // putting in all the possibilities, defaulted to Off
+        var riv = {    // putting in all the possibilities, defaulted to Off
             Acid: actionOff,
             Adamantine: {
                 Bludgeoning: actionOff,
@@ -130,7 +126,6 @@ on('ready',function(){
         // parse that sucker, updating ricv accordingly
         var outer = theData.split(";");
         outer.forEach(function (paramOuter, indexOuter){
-            //log(paramOuter);
             // is this a section of Silvered, Magical, or Adamantine?
             var adamantine = paramOuter.includes(searchAdamantine);
             var silvered = paramOuter.includes(searchSilver);
@@ -141,19 +136,19 @@ on('ready',function(){
                 if(-1 != paramOuter.search(s)){
                     // We have a hit!
                     if(adamantine) {
-                        ricv[damageMinorTypes[0]][dt] = actionOn;
+                        riv[damageMinorTypes[0]][dt] = actionOn;
                     } else if(silvered){
-                        ricv[damageMinorTypes[1]][dt] = actionOn;
+                        riv[damageMinorTypes[1]][dt] = actionOn;
                     } else if(magic){
-                        ricv[damageMinorTypes[2]][dt] = actionOn;
+                        riv[damageMinorTypes[2]][dt] = actionOn;
                     } else {
-                        ricv[dt] = actionOn;
+                        riv[dt] = actionOn;
                     }
                 }
             });
         });
         
-        return ricv;
+        return riv;
     }
 
     on('chat:message',function(msg){
@@ -161,7 +156,6 @@ on('ready',function(){
         if('api' === msg.type) {
             if(msg.content.indexOf("!DamageTypeSet ") !== -1 ){
                 // We are being called to modify the damage type this character has resistance, vulnerability, immunity, or condition immunity to
-                //log(msg);
 		        if(msg.content.indexOf(param_Target) == -1) {
 		            sendChat("DamageTypeSet", "/w " + msg.who + " You called DamageTypeSet without having a target specified.");
 	        	    return;
@@ -274,22 +268,43 @@ on('ready',function(){
                 } else {
                     // there is an existing attribute, we need to modify it
                     theAttr = theList[0];
+		
+					if("npc_condition_immunities" === mode){
+						// Conditions are a bit different, so we'll treat them different.
+						// get the value (string), add or subtract (if needed) the value, sort, store
+						var sTemp = theAttr.get("current");
+						log(sTemp);
+						if(action === actionOff) {
+							// we just need to strip the thing out of the string
+							var reggie = RegExp(",\\s" + dmgType, "gi");
+							sTemp.replace(reggie, "");
+						} else {
+							// we need to add the thing to the string, in the right place
+							var aTemp = sTemp.split(/,\s/g);
+							if(!aTemp.includes(dmgType)) {
+								aTemp.push(dmgType);
+								aTemp.sort();
+								sTemp = aTemp.join(", ");
+							}
+						}
+						theAttr.set("current", sTemp);
+					} else {
+						// Resistances, Immunities, and Vulnerabilities
+	                    var oldState = parseRIVData(theAttr.get("current"));
 
-                    var oldState = parseRIVCData(theAttr.get("current"));
-
-                    // now set the new value into our data structure
-                    if(adamantine){
-                        oldState[damageMinorTypes[0]][dmgType] = action;
-                    } else if(silver){
-                        oldState[damageMinorTypes[1]][dmgType] = action;
-                    } else if(magic){
-                        oldState[damageMinorTypes[2]][dmgType] = action;
-                    } else {
-                        oldState[dmgType] = action;
-                    }
-
-                    // and set the attribute to a stringified version of our data structure
-                    theAttr.set("current", combineRIVCData(oldState));
+    	                // now set the new value into our data structure
+        	            if(adamantine){
+            	            oldState[damageMinorTypes[0]][dmgType] = action;
+                	    } else if(silver){
+                    	    oldState[damageMinorTypes[1]][dmgType] = action;
+	                    } else if(magic){
+    	                    oldState[damageMinorTypes[2]][dmgType] = action;
+        	            } else {
+            	            oldState[dmgType] = action;
+                	    }
+						// and set the attribute to a stringified version of our data structure
+						theAttr.set("current", combineRIVData(oldState));
+					}
                 }
             }
         }
