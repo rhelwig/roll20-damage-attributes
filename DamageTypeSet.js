@@ -19,7 +19,7 @@ var conditionTypes = ["Blinded", "Charmed", "Deafened", "Exhaustion", "Frightene
 on('ready',function(){
     "use strict";
     log("DamageTypeMods loaded");
-    
+
     function hasMinorTypeOn(theData, minorType){
         // minorType is one of the damageMinorTypes
         //  go through the structure and see how many are on
@@ -152,7 +152,7 @@ on('ready',function(){
     }
 
     on('chat:message',function(msg){
-        
+
         if('api' === msg.type) {
             if(msg.content.indexOf("!DamageTypeSet ") !== -1 ){
                 // We are being called to modify the damage type this character has resistance, vulnerability, immunity, or condition immunity to
@@ -272,22 +272,23 @@ on('ready',function(){
 					if("npc_condition_immunities" === mode){
 						// Conditions are a bit different, so we'll treat them different.
 						// get the value (string), add or subtract (if needed) the value, sort, store
-						var sTemp = theAttr.get("current");
-						log(sTemp);
+						let sConditions = theAttr.get("current");
+						log(sConditions);
+						let aConditionList = sConditions.split(/,\s/g);
 						if(action === actionOff) {
-							// we just need to strip the thing out of the string
-							var reggie = RegExp(",\\s" + dmgType, "gi");
-							sTemp.replace(reggie, "");
+                            // remove the element corresponding to dmgType (case insensitive search!)
+                            aConditionList = aConditionList.filter(function(cItem){
+                                return cItem.toLowerCase() != dmgType.toLowerCase();
+                            });
 						} else {
 							// we need to add the thing to the string, in the right place
-							var aTemp = sTemp.split(/,\s/g);
-							if(!aTemp.includes(dmgType)) {
-								aTemp.push(dmgType);
-								aTemp.sort();
-								sTemp = aTemp.join(", ");
+							if(!aConditionList.includes(dmgType)) { // TODO: Case Sensitivity!!
+								aConditionList.push(dmgType);
+								aConditionList.sort();
 							}
 						}
-						theAttr.set("current", sTemp);
+						sConditions = aConditionList.join(", ");
+						theAttr.set("current", sConditions);
 					} else {
 						// Resistances, Immunities, and Vulnerabilities
 	                    var oldState = parseRIVData(theAttr.get("current"));
