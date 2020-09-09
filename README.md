@@ -12,11 +12,11 @@ The Conditions, Immunities, Resistances, and Vulnerabiliies macros are chat macr
 ## DamageTypeSet
 The exposed API call DamageTypeSet takes the following parameters:
 
- target=*<TokenDI>*
+ target=*`<`TokenDI`>`*
  
   The ID of the token of the character being modified. Probably the result of a @selected or @target in a macro
   
- type=*<DamageTypeOrCondition>*
+ type=*`<`DamageTypeOrCondition`>`*
  
   Any of the various damage types (Fire, Cold, Acid, Bludgeoning, etc.) or conditions (Paralyzed, Stunned, etc.)
   
