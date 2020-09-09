@@ -11,14 +11,21 @@ The Conditions, Immunities, Resistances, and Vulnerabiliies macros are chat macr
 
 ## DamageTypeSet
 The exposed API call DamageTypeSet takes the following parameters:
-target=*<TokenDI>*
-type=*<DamageTypeOrCondition>*
-set=[on|off]
-mode=[C,I,R,V]
-silver (optional)
-magic (optional)
-adamantine (optional)
-  
+ target=*<TokenDI>*
+  The ID of the token of the character being modified. Probably the result of a @selected or @target in a macro
+ type=*<DamageTypeOrCondition>*
+  Any of the various damage types (Fire, Cold, Acid, Bludgeoning, etc.) or conditions (Paralyzed, Stunned, etc.)
+ set=[on|off]
+  Whether you want to turn it on or off
+ mode=[C,I,R,V]
+  [C]ondition Immunity, [I]mmunity, [R]esistance, or [V]ulnerability (not case sensitive)
+ silver (optional)
+  Pass this parameter if the type is modified by silver (e.g. Piercing with a silvered weapon)
+ magic (optional)
+  Pass this parameter if the type is modified by silver (e.g. a magical attack)
+ adamantine (optional)
+  Pass this parameter if the type is modified by silver (e.g. Piercing with an adamantine weapon)
+
 Example:
 `!DamageTypeSet --target=-MB_wBNsNuqxW5R3ajMX --type=Charmed --set=off --mode=C`
 
